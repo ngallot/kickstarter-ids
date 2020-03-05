@@ -17,7 +17,9 @@ setuptools.setup(
     install_requires=[
         "pyspark==2.4.5",
         "click==7.0",
-        "numpy==1.18.1"
+        "numpy==1.18.1",
+        "mlflow==1.7.0",
+        "google-cloud-storage==1.25.0"
     ],
     entry_points='''
     [console_scripts]
