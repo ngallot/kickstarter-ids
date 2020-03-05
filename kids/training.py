@@ -102,10 +102,10 @@ def train(inputs_path: str):
         metrics.update({'test_auc': test_metrics})
         logger.info(f'Model metrics: {metrics}')
 
-        # logger.info('Logging to mlflow')
-        # mlflow_params = {'model_class': 'gbt', 'max_iter': max_iter}
-        # mlflow.log_params(mlflow_params)
-        # mlflow.log_metrics(metrics)
-        # log_model(model, 'model')
-        # model_uri = mlflow.get_artifact_uri(artifact_path='model')
-        # logger.info(f'Model successfully trained and saved @ {model_uri}')
+        logger.info('Logging to mlflow')
+        mlflow_params = {'model_class': 'gbt', 'max_iter': max_iter}
+        mlflow.log_params(mlflow_params)
+        mlflow.log_metrics(metrics)
+        log_model(model, 'model')
+        model_uri = mlflow.get_artifact_uri(artifact_path='model')
+        logger.info(f'Model successfully trained and saved @ {model_uri}')
