@@ -4,3 +4,4 @@ venv/*
 *egg-info*
 data/*.csv
 data/*.parquet
+*checkpoint.ipynb

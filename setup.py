@@ -16,7 +16,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "pyspark==2.4.5",
-        "click==7.0"
+        "click==7.0",
+        "numpy==1.18.1"
     ],
     entry_points='''
     [console_scripts]
