@@ -3,7 +3,7 @@ from pyspark.ml.evaluation import BinaryClassificationEvaluator
 import mlflow
 from mlflow.spark import log_model
 from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
-from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.classification import LogisticRegression, GBTClassifier
 from pyspark.ml import Pipeline, PipelineModel
 from kids.utils import SparkUtils
 from typing import List
@@ -37,13 +37,14 @@ def build_model(numerical_columns: List[str], categorical_columns: List[str], la
         .setInputCols(numerical_columns + [s.getOutputCol() for s in encoding_stages]) \
         .setOutputCol('features')
 
-    lr = LogisticRegression() \
-        .setMaxIter(max_iter) \
-        .setFeaturesCol(vector_assembler.getOutputCol()) \
+    gbt = GBTClassifier()\
+        .setMaxIter(max_iter)\
+        .setMaxDepth(6)\
+        .setFeaturesCol(vector_assembler.getOutputCol())\
         .setLabelCol(label_col)
 
     return Pipeline()\
-        .setStages(indexing_stages + encoding_stages + [vector_assembler, lr])
+        .setStages(indexing_stages + encoding_stages + [vector_assembler, gbt])
 
 
 def train(inputs_path: str):
