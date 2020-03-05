@@ -5,6 +5,7 @@ from mlflow.spark import log_model
 from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml.classification import LogisticRegression, GBTClassifier
 from pyspark.ml import Pipeline, PipelineModel
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder, CrossValidatorModel
 from kids.utils import SparkUtils
 from typing import List
 from google.auth.compute_engine._metadata import _LOGGER as google_logger
@@ -27,7 +28,8 @@ def build_one_hot_encoder(col_name: str) -> OneHotEncoder:
         .setOutputCol(f'{col_name}_encoded')
 
 
-def build_model(numerical_columns: List[str], categorical_columns: List[str], label_col: str, max_iter: int) -> Pipeline:
+def build_model(numerical_columns: List[str], categorical_columns: List[str],
+                label_col: str, max_iter: int) -> Pipeline:
 
     indexing_stages = [build_string_indexer(c) for c in categorical_columns]
     indexed_columns = [s.getOutputCol() for s in indexing_stages]
@@ -38,8 +40,6 @@ def build_model(numerical_columns: List[str], categorical_columns: List[str], la
         .setOutputCol('features')
 
     gbt = GBTClassifier()\
-        .setMaxIter(max_iter)\
-        .setMaxDepth(6)\
         .setFeaturesCol(vector_assembler.getOutputCol())\
         .setLabelCol(label_col)
 
@@ -77,10 +77,22 @@ def train(inputs_path: str):
         .setRawPredictionCol('rawPrediction') \
         .setLabelCol('final_status')
 
-    with mlflow.start_run() as active_run:
-        logger.info(f'Fitting model on {df_train.count()} lines')
+    gbt = model_specs.getStages()[-1]
 
-        model: PipelineModel = model_specs.fit(df_train)
+    params_grid = ParamGridBuilder()\
+        .addGrid(gbt.maxDepth, [6]) \
+        .addGrid(gbt.maxIter, [15]) \
+        .addGrid(gbt.maxBins, [32])\
+        .build()
+
+    cross_val = CrossValidator(estimator=model_specs, estimatorParamMaps=params_grid,
+                               evaluator=evaluator, numFolds=2)
+
+    with mlflow.start_run() as active_run:
+        logger.info(f'Cross evaluating model on {df_train.count()} lines')
+
+        cross_val_model: CrossValidatorModel = cross_val.fit(df_train)
+        model = cross_val_model.bestModel
 
         logger.info('Evaluating model')
         train_metrics = evaluator.evaluate(model.transform(df_train))
@@ -90,10 +102,10 @@ def train(inputs_path: str):
         metrics.update({'test_auc': test_metrics})
         logger.info(f'Model metrics: {metrics}')
 
-        logger.info('Logging to mlflow')
-        mlflow_params = {'model_class': 'gbt', 'max_iter': max_iter}
-        mlflow.log_params(mlflow_params)
-        mlflow.log_metrics(metrics)
-        log_model(model, 'model')
-        model_uri = mlflow.get_artifact_uri(artifact_path='model')
-        logger.info(f'Model successfully trained and saved @ {model_uri}')
+        # logger.info('Logging to mlflow')
+        # mlflow_params = {'model_class': 'gbt', 'max_iter': max_iter}
+        # mlflow.log_params(mlflow_params)
+        # mlflow.log_metrics(metrics)
+        # log_model(model, 'model')
+        # model_uri = mlflow.get_artifact_uri(artifact_path='model')
+        # logger.info(f'Model successfully trained and saved @ {model_uri}')
