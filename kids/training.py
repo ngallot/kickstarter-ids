@@ -27,14 +27,14 @@ def build_one_hot_encoder(col_name: str) -> OneHotEncoder:
         .setOutputCol(f'{col_name}_encoded')
 
 
-def build_model(categorical_columns: List[str], label_col: str, max_iter: int) -> Pipeline:
+def build_model(numerical_columns: List[str], categorical_columns: List[str], label_col: str, max_iter: int) -> Pipeline:
 
     indexing_stages = [build_string_indexer(c) for c in categorical_columns]
     indexed_columns = [s.getOutputCol() for s in indexing_stages]
     encoding_stages = [build_one_hot_encoder(c) for c in indexed_columns]
 
     vector_assembler = VectorAssembler() \
-        .setInputCols([s.getOutputCol() for s in encoding_stages]) \
+        .setInputCols(numerical_columns + [s.getOutputCol() for s in encoding_stages]) \
         .setOutputCol('features')
 
     lr = LogisticRegression() \
@@ -50,7 +50,6 @@ def train(inputs_path: str):
 
     spark = SparkUtils.build_or_get_session('training')
     df_kids = spark.read.parquet(inputs_path)
-    features = ['days_campaign', 'hours_prepa', 'country_clean', 'currency_clean']
     label_col = 'final_status'
 
     mlflow_tracking_ui = 'http://35.246.84.226'
@@ -59,12 +58,15 @@ def train(inputs_path: str):
     mlflow.set_tracking_uri(mlflow_tracking_ui)
     mlflow.set_experiment(experiment_name=mlflow_experiment_name)
 
-    # categorical_columns = ['days_campaign', 'hours_prepa', 'country_clean', 'currency_clean']
+    numerical_columns = ['days_campaign', 'hours_prepa', 'goal']
     categorical_columns = ['country_clean', 'currency_clean']
+    features = numerical_columns + categorical_columns
+
     df = df_kids.select(features + [label_col])
 
-    max_iter = 3
-    model_specs: Pipeline = build_model(categorical_columns=categorical_columns, label_col=label_col, max_iter=max_iter)
+    max_iter = 15
+    model_specs: Pipeline = build_model(numerical_columns=numerical_columns, categorical_columns=categorical_columns,
+                                        label_col=label_col, max_iter=max_iter)
 
     df_train, df_test = df.randomSplit([0.8, 0.2], seed=12345)
     df_train = df_train.cache()
@@ -88,7 +90,7 @@ def train(inputs_path: str):
         logger.info(f'Model metrics: {metrics}')
 
         logger.info('Logging to mlflow')
-        mlflow_params = {'model_class': 'logistic_regression', 'max_iter': max_iter}
+        mlflow_params = {'model_class': 'gbt', 'max_iter': max_iter}
         mlflow.log_params(mlflow_params)
         mlflow.log_metrics(metrics)
         log_model(model, 'model')
