@@ -14,3 +14,10 @@ def kids():
 def preprocess(inputs_path: str, destination_path: str):
     from kids import workflows as wks
     wks.preprocess(inputs_path=inputs_path, destination_path=destination_path)
+
+
+@kids.command(name='train', help='Train a classifier model to predict success or failure of a Kickstarter campaign')
+@click.option('--parquet-path', '-p', help='The where input parquet file can be found')
+def train(parquet_path: str):
+    from kids import workflows as wks
+    wks.train(parquet_file_path=parquet_path)

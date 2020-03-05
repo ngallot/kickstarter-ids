@@ -19,3 +19,11 @@ def preprocess(inputs_path: str, destination_path: str):
         print(f'File exported @ {destination_path}')
     except Exception as e:
         logger.error(f'Error while preprocessing dataset: {e}')
+
+
+def train(parquet_file_path: str):
+    try:
+        from kids import training as trn
+        trn.train(inputs_path=parquet_file_path)
+    except Exception as e:
+        logger.error(f'Error while training model: {e}')
