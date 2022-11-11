@@ -15,7 +15,7 @@ setuptools.setup(
                 'campaign',
     packages=setuptools.find_packages(),
     install_requires=[
-        "pyspark==2.4.5",
+        "pyspark==3.2.2",
         "click==7.0",
         "numpy==1.18.1",
         "mlflow==1.7.0",
