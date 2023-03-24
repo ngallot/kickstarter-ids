@@ -18,7 +18,7 @@ setuptools.setup(
         "pyspark==2.4.5",
         "click==7.0",
         "numpy==1.18.1",
-        "mlflow==1.7.0",
+        "mlflow==2.2.1",
         "google-cloud-storage==1.25.0"
     ],
     entry_points='''
